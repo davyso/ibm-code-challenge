@@ -1,4 +1,4 @@
-# ibm-code-challenge
+# ibm-code-challenge (Spark)
 
 ## Setup
 In IntelliJ (or any other IDE), set the following run/build configurations:
