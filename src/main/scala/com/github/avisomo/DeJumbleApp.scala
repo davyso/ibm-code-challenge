@@ -10,9 +10,8 @@ import org.apache.spark.sql.functions._
 /**
  * @author ${user.name}
  */
-object App {
+object DeJumbleApp {
   
-  def foo(x : Array[String]) = x.foldLeft("")((a,b) => a + b)
 
   def main(args: Array[String]) {
 
@@ -61,8 +60,36 @@ object App {
     val sortedWord = new String(sortedCharArray)
 
     val result = freqWithSortedCharsDF.filter($"sortedChars"===sortedWord)
+    result.cache()
 
     result.show(10)
+
+    val rankedSolnsDF = result.filter($"frequency" > 0)
+    val numRankedSolns = rankedSolnsDF.count()
+
+    val unrankedSolnsDF = result.filter($"frequency"===0)
+    val numUnrankedSolns = unrankedSolnsDF.count()
+
+    if(numRankedSolns > 0) {
+      val answer = rankedSolnsDF
+        .orderBy(asc("frequency"))
+        .first()
+        .getAs[String]("word")
+      println(answer)
+    }
+    else {
+      val answer = unrankedSolnsDF
+        .first()
+        .getAs[String]("word")
+      println(answer)
+    }
+
+//    val rankedFreqDF = result.filter($"frequency" > 0).orderBy(asc("frequency"))
+//
+//    val unrankedFreqDF = result.filter($"frequency"===0)
+//    unrankedFreqDF.show(10)
+//    val answer = unrankedFreqDF.first().getAs[String]("word")
+//    println(answer)
 
   }
 

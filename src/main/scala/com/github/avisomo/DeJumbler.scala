@@ -2,9 +2,9 @@ package com.github.avisomo
 
 import java.util.Arrays
 
-import com.github.avisomo.App.sortCharacters
+import com.github.avisomo.DeJumbleApp.sortCharacters
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.udf
+import org.apache.spark.sql.functions.{asc, udf}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
@@ -29,7 +29,8 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
     // filter for possible words
     val solnsFreqDF = tokenizedFreqDF.filter($"token"===targetToken)
 
-    // TODO choose most likely word
+    // return most likely word as solution
+    chooseBestSoln(solnsFreqDF)
 
   }
 
@@ -78,6 +79,35 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
     Arrays.sort(chars)
 
     new String(chars)
+  }
+
+  // Given a word frequency DataFrame, choose the best possible answer
+  def chooseBestSoln(solnsFreqDF: DataFrame): String = {
+    solnsFreqDF.cache()
+
+    val rankedSolnsDF = solnsFreqDF.filter($"frequency" > 0)
+    val numRankedSolns = rankedSolnsDF.count()
+
+    val unrankedSolnsDF = solnsFreqDF.filter($"frequency" === 0)
+    val numUnrankedSolns = unrankedSolnsDF.count()
+
+    if (numRankedSolns > 0) {
+      val answer = rankedSolnsDF
+        .orderBy(asc("frequency"))
+        .first()
+        .getAs[String]("word")
+
+      solnsFreqDF.unpersist()
+      answer
+    }
+    else {
+      val answer = unrankedSolnsDF
+        .first()
+        .getAs[String]("word")
+
+      solnsFreqDF.unpersist()
+      answer
+    }
   }
 
 }
