@@ -2,7 +2,6 @@ package com.github.avisomo
 
 import java.util.Arrays
 
-import com.github.avisomo.DeJumbleApp.sortCharacters
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions.{asc, udf}
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -11,18 +10,16 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
   import spark.implicits._
 
-  // TODO Validate on persistence strategy
-
-  // cache freq Dataframe (NOT in dejumble)
-  val jsonRDD = readFreqDictAsRDD(jsonPath)
-  val freqDF = createFrequencyDF(jsonRDD)
+  val jsonRDD: RDD[Array[String]] = readFreqDictAsRDD(jsonPath)
+  val freqDF: DataFrame = createFrequencyDF(jsonRDD)
 
   // For each word in freqDF, generate a token that will be used to identify possible solutions
-  val tokenizedFreqDF = tokenizeWords(freqDF)
+  val tokenizedFreqDF: DataFrame = tokenizeWords(freqDF)
   tokenizedFreqDF.cache()
 
 
-  def dejumble(targetWord: String): Unit ={
+  // Dejumble the provided worc for the best possible answer
+  def dejumble(targetWord: String): String ={
 
     val targetToken = sortCharacters(targetWord)
 
@@ -31,7 +28,6 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
     // return most likely word as solution
     chooseBestSoln(solnsFreqDF)
-
   }
 
 
