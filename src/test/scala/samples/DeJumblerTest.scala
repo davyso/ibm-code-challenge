@@ -85,9 +85,16 @@ class DeJumblerTest extends FunSuite with BeforeAndAfter {
   // UNIT TESTS
   // ==============
 
-  test("sortCharacters - correctly sort"){
-    val actual = dejumbler.sortCharacters("moon")
+  test("sortCharacters - correctly sort single word"){
+    val actual = dejumbler.sortCharacters(Seq("moon"))
     val expected = "mnoo"
+
+    assert(actual.equals(expected))
+  }
+
+  test("sortCharacters - correctly sort multiple word"){
+    val actual = dejumbler.sortCharacters(Seq("moon", "job"))
+    val expected = "bjmnooo"
 
     assert(actual.equals(expected))
   }

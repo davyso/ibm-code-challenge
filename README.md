@@ -28,3 +28,11 @@ The other dependencies of the tech stack (Scala, Spark, etc.) should be setup us
 ## Running Jumbles
 The class `DeJumblerTest` contains all 5 Jumble puzzle examples. You can run all of them at once or one at a time. The 
 test suite also contains unit tests that you may choose to run.
+
+## Solving Cartoon
+Sadly, I had trouble solving the cartoon at the end of each puzzle. This is because a large variety of possible answers 
+that would require each node to talk to other nodes (at least, this is what I figured out so far). For example, provided
+with circle letters `List('l', 'n', 'd', 'j', 'o', 'b', 'e', 'a', 'l', 'w', 'e')`, and the sizes of the circle words are
+3, 4, and 4, then all possible ways to fit the circle letters into the first 3-letter x second 4-letter word x third 
+4-lettter word would need to be found which would be extremely high. While somewhat runnable but not complete, severel 
+attempts (methods `solveCircles()` and `solveCircles2()`) have been made.

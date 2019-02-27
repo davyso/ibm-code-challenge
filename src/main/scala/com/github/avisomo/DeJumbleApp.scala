@@ -1,17 +1,13 @@
 package com.github.avisomo
 
-import java.util
-import java.util.Arrays
-import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
-
 
 /**
- * @author ${user.name}
+ * @author avisomo
  */
 object DeJumbleApp {
 
+  // Demo run of first four Jumbles in Puzzle 1
   def main(args: Array[String]) {
 
     val spark = SparkSession
@@ -49,8 +45,13 @@ object DeJumbleApp {
     println(circleLetters)
     // List(l, n, d, j, o, b, e, a, l, w, e)
 
-    // TODO Solve final Jumble
-    dejumbler.solveCartoon(circleLetters, circleWordSizes)
+    // TODO: Brute force method attempt to get list of possible word combinations as solutions
+    // NOTE: Feel free to uncomment to show intermedite DataFrame that was reached before acknowledging the issue
+//    dejumbler.solveCircles(circleLetters, circleWordSizes)
+
+    // TODO: Attempt to improve performance of finding possible word combinations as solution
+    // NOTE: Feel free to uncomment to show intermedite DataFrame that was reached before acknowledging the issue
+//    dejumbler.solveCircles2(circleLetters, circleWordSizes)
 
   }
 }

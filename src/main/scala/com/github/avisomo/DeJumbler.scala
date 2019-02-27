@@ -3,7 +3,7 @@ package com.github.avisomo
 import java.util.Arrays
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.{asc, length, lit, udf}
+import org.apache.spark.sql.functions.{asc, array, col, collect_list, length, lit, udf}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ListBuffer
@@ -23,7 +23,7 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
   // Dejumble the provided worc for the best possible answer
   def dejumble(targetWord: String): String ={
 
-    val targetToken = sortCharacters(targetWord)
+    val targetToken = sortCharacters(List(targetWord))
 
     // filter for possible words
     val solnsFreqDF = tokenizedFreqDF.filter($"token"===targetToken)
@@ -32,8 +32,61 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
     chooseBestSoln(solnsFreqDF)
   }
 
-  // TODO Create test class
-  def solveCartoon(circleLetters: List[Char], circleWordSizes: List[Int]): Unit ={
+  // Obtain possible solutions based on word size and create a 'supertoken' based on them. Then, generate a target
+  // supertoken from the provided circle letters and filter for this from the possible solutions DataFrame. Lastly,
+  // for each possible solution, measure frequency rank and return the lowest cumulative rank
+  def solveCircles(circleLetters: List[Char], circleWordSizes: List[Int]): Unit ={
+    val sortCharactersUDF = udf[String,List[String]](sortCharacters)
+
+    var possibleSolnsDF = tokenizedFreqDF
+      .select($"word".alias("word0"))
+      .where(length(col("word0"))===circleWordSizes(0))
+
+    for(i <- 1 until circleWordSizes.length){
+      val otherWords = tokenizedFreqDF
+        .select($"word".alias("word"+i))
+        .where(length(col("word"+i))===circleWordSizes(i))
+      possibleSolnsDF = possibleSolnsDF.crossJoin(otherWords)
+    }
+
+    // Create supertoken column
+    val colNames = possibleSolnsDF.columns.toSeq
+    val firstColName = colNames.head
+    val otherColNames = colNames.slice(1, colNames.length)
+
+    possibleSolnsDF = possibleSolnsDF.withColumn(
+      "supertoken",
+      sortCharactersUDF(array(firstColName,otherColNames:_*))
+    )
+
+    possibleSolnsDF.show()
+
+    // TODO: Bottom snippet takes too long since each node will have to interact with every other node [O(n^2)???]
+//    val targetSupertoken = sortCharacters(List(circleLetters.mkString))
+//    possibleSolnsDF.filter($"supertoken"===targetSupertoken).show()
+  }
+
+
+  // TODO: Attempt to improve performance of finding possible word cobinations as solution
+  // Logic:
+  // Provided circle letters: List(l, n, d, j, o, b, e, a, l, w, e)
+  // Add column that shows  letters from provided circle letters list that are not in "word"
+  // job | lndealwe
+  // lob | ndjealwe
+  // tob | ---
+
+
+  // job | lend | alwe
+  // lob | deal | njwe
+
+
+  // job | lend | weal
+  // job | deal | ----
+
+  // Iteratively identify the first 3-letter words with remainder column, then identify second 4-letter
+  // words with remainder column, lastly identify last 4-letter column. For each end of iteration,
+  // filter out remainders of "---" or "----"
+  def solveCircles2(circleLetters: List[Char], circleWordSizes: List[Int]): Unit ={
     val word1Size = 3
     val word2Size = 4
     val word3Size = 4
@@ -47,23 +100,6 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 //    var wordComboDF = tokenizedFreqDF.select("word").where(length($"word")===3 || length($"word")===4)
 //    wordComboDF.show(10)
 
-    // List(l, n, d, j, o, b, e, a, l, w, e)
-    // Add column that shows  letters from provided circle letters list that are not in "word"
-    // job | lndealwe
-    // lob | ndjealwe
-    // tob | ---
-
-
-    // job | lend | alwe
-    // lob | deal | njwe
-
-
-    // job | lend | weal
-    // job | deal | ----
-
-    // Iteratively identify the first 3-letter words with remainder column, then identify second 4-letter
-    // words with remainder column, lastly identify last 4-letter column. For each end of iteration,
-    // filter out remainders of "---" or "----"
 
     var wordComboDF = tokenizedFreqDF
       .select("word")
@@ -76,7 +112,12 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
     temp = temp.filter($"remaining".isNotNull)
 
+    temp = temp.groupBy("remaining").agg(collect_list("word")).alias("word1")
+
     temp.show(10)
+
+    val wordComboDF2 = tokenizedFreqDF.select("word").where(length($"word")===word2Size)
+    wordComboDF2.crossJoin(temp).show()
 
 
 
@@ -131,8 +172,8 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
   // Add new column "token"
   def tokenizeWords(freqDF: DataFrame): DataFrame ={
-    val sortCharactersUDF = udf[String,String](sortCharacters)
-    val tokenizedFreqDF = freqDF.withColumn("token", sortCharactersUDF($"word"))
+    val sortCharactersUDF = udf[String,List[String]](sortCharacters)
+    val tokenizedFreqDF = freqDF.withColumn("token", sortCharactersUDF(array($"word")))
 
     tokenizedFreqDF
   }
@@ -151,8 +192,8 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
   // TODO: Allow multiple string arguments, but first make sure the word combos DF doesn't take too long to create
   // Sort chars in word
-  def sortCharacters(word: String): String ={
-    val chars = word.toCharArray
+  def sortCharacters(words: Seq[String]): String ={
+    val chars = words.flatMap(_.toCharArray).toArray
     Arrays.sort(chars)
 
     new String(chars)
