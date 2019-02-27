@@ -3,8 +3,10 @@ package com.github.avisomo
 import java.util.Arrays
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.{asc, length, udf}
+import org.apache.spark.sql.functions.{asc, length, lit, udf}
 import org.apache.spark.sql.{DataFrame, SparkSession}
+
+import scala.collection.mutable.ListBuffer
 
 class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
@@ -36,8 +38,10 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
     val word2Size = 4
     val word3Size = 4
 
-//    tokenizedFreqDF.select("word")
 
+    val filterOutStrFromCharSetUDF =  udf[String, String, String](filterOutStrFromCharSet)
+
+//    tokenizedFreqDF.select("word")
 
 
 //    var wordComboDF = tokenizedFreqDF.select("word").where(length($"word")===3 || length($"word")===4)
@@ -64,7 +68,15 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
     var wordComboDF = tokenizedFreqDF
       .select("word")
       .where(length($"word")===word1Size)
-    wordComboDF.show(10)
+
+    var temp = wordComboDF.withColumn(
+      "remaining",
+      filterOutStrFromCharSetUDF($"word", lit(circleLetters.mkString))
+    )
+
+    temp = temp.filter($"remaining".isNotNull)
+
+    temp.show(10)
 
 
 
@@ -126,9 +138,16 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
   }
 
 
-//  def filterOutStrFromCharSet(str: String, charSet: List[Char]): List[Char] ={
-//
-//  }
+  def filterOutStrFromCharSet(str: String, charSet: String): String ={
+
+    var remaining = charSet
+
+    for(c <- str.toCharArray){
+      if(!(remaining contains c)) return null
+      remaining = remaining.replaceFirst(c.toString,"")
+    }
+    remaining
+  }
 
   // TODO: Allow multiple string arguments, but first make sure the word combos DF doesn't take too long to create
   // Sort chars in word
