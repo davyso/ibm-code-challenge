@@ -35,6 +35,8 @@ object DeJumbleApp {
       List(0,2,4)
     )
 
+    val circleWordSizes = List(3,4,4)
+
     // Solve first four Jumbles
     val answers = jumbles.map(dejumbler.dejumble)
     println(answers)
@@ -47,6 +49,18 @@ object DeJumbleApp {
     println(circleLetters)
 
     // TODO Solve final Jumble
+    dejumbler.solveCartoon(circleLetters, circleWordSizes)
+
+    // lnd vs dnl would provide us same token "dln"; thus use permutations instead of combinations
+    // first sort
+    // then find permutation (token) for 3 size, 4 size, and 4 size
+
+    // Method 2
+    // For each word token, filter out those whose letters are not in this circle letters list
+    // Combine each  3 size word with a 4 size and a 4 size
+    // and each 4 size word with a 3 size and 4 size
+    // tokenize them and select the ones that match
+    // Choose the triplet that contains the most precise frequency
 
   }
 }

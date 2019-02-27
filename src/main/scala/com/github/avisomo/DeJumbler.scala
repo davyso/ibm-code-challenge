@@ -3,7 +3,7 @@ package com.github.avisomo
 import java.util.Arrays
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.{asc, udf}
+import org.apache.spark.sql.functions.{asc, length, udf}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
@@ -28,6 +28,63 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
 
     // return most likely word as solution
     chooseBestSoln(solnsFreqDF)
+  }
+
+  // TODO Create test class
+  def solveCartoon(circleLetters: List[Char], circleWordSizes: List[Int]): Unit ={
+    val word1Size = 3
+    val word2Size = 4
+    val word3Size = 4
+
+//    tokenizedFreqDF.select("word")
+
+
+
+//    var wordComboDF = tokenizedFreqDF.select("word").where(length($"word")===3 || length($"word")===4)
+//    wordComboDF.show(10)
+
+    // List(l, n, d, j, o, b, e, a, l, w, e)
+    // Add column that shows  letters from provided circle letters list that are not in "word"
+    // job | lndealwe
+    // lob | ndjealwe
+    // tob | ---
+
+
+    // job | lend | alwe
+    // lob | deal | njwe
+
+
+    // job | lend | weal
+    // job | deal | ----
+
+    // Iteratively identify the first 3-letter words with remainder column, then identify second 4-letter
+    // words with remainder column, lastly identify last 4-letter column. For each end of iteration,
+    // filter out remainders of "---" or "----"
+
+    var wordComboDF = tokenizedFreqDF
+      .select("word")
+      .where(length($"word")===word1Size)
+    wordComboDF.show(10)
+
+
+
+
+
+//    val temp = tokenizedFreqDF.filter(length($"word")===word2Size)
+//    temp.show(10)
+//    wordComboDF = wordComboDF.withColumn(
+//      "word2",
+//      temp.col("word"))
+//
+//    wordComboDF = wordComboDF.withColumn(
+//      "word3",
+//      tokenizedFreqDF.filter(length($"word")===word3Size).col("word"))
+//
+////    for (i <- 1 until circleWordSizes.length) {
+////
+////    }
+//    wordComboDF.show(10)
+
   }
 
 
@@ -69,6 +126,11 @@ class DeJumbler(spark: SparkSession, jsonPath: String) extends Serializable {
   }
 
 
+//  def filterOutStrFromCharSet(str: String, charSet: List[Char]): List[Char] ={
+//
+//  }
+
+  // TODO: Allow multiple string arguments, but first make sure the word combos DF doesn't take too long to create
   // Sort chars in word
   def sortCharacters(word: String): String ={
     val chars = word.toCharArray
